@@ -35,11 +35,14 @@
 
 - (IBAction)showCustom:(id)sender {
     [CSNotificationView showInViewController:self.navigationController
-            tintColor:[UIColor colorWithRed:0.000 green:0.6 blue:1.000 alpha:1]
-                image:nil
-              message:@"No icon and a message that needs two rows and extra "
-                      @"presentation time to be displayed properly."
-             duration:5.8f];
+                                       style:CSNotificationViewStyleShare
+                                     message:@"Share on : "];
+//    [CSNotificationView showInViewController:self.navigationController
+//            tintColor:[UIColor colorWithRed:0.000 green:0.6 blue:1.000 alpha:1]
+//                image:nil
+//              message:@"No icon and a message that needs two rows and extra "
+//                      @"presentation time to be displayed properly."
+//             duration:5.8f];
     
 }
 
