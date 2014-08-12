@@ -15,7 +15,16 @@ static NSTimeInterval const kCSNotificationViewDefaultShowDuration = 2.0;
 typedef enum {
     CSNotificationViewStyleSuccess,
     CSNotificationViewStyleError,
+    CSNotificationViewStyleShare,
 } CSNotificationViewStyle;
+
+typedef NS_ENUM(NSUInteger, CSNotificationViewShareType) {
+    CSNotificationViewShareTypeFacebook,
+    CSNotificationViewShareTypeTwitter,
+    CSNotificationViewShareTypeUnknown
+};
+
+typedef void(^CSNotificationViewShareBlock)(CSNotificationViewShareType);
 
 typedef void(^CSVoidBlock)();
 
@@ -72,5 +81,7 @@ typedef void(^CSVoidBlock)();
 @property (nonatomic, getter = isShowingActivity) BOOL showingActivity;
 
 @property (nonatomic, copy) CSVoidBlock tapHandler;
+
+@property (nonatomic, copy) CSNotificationViewShareBlock shareTapHandler;
 
 @end

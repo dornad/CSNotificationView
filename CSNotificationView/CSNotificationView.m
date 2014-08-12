@@ -30,6 +30,8 @@ static NSString * kCSNavigationBarBoundsKeyPath = @"bounds";
 @property (nonatomic, strong, readonly) UIView* symbolView; // is updated by -(void)updateSymbolView
 @property (nonatomic, strong) UILabel* textLabel;
 @property (nonatomic, strong) UIColor* contentColor;
+@property (nonatomic, strong) UIView* facebookShareView; // is updated by -(void)updateShareViews
+@property (nonatomic, strong) UIView* twitterShareView; // is updated by -(void)updateShareViews
 
 #pragma mark - interaction
 @property (nonatomic, strong) UITapGestureRecognizer* tapRecognizer;
@@ -201,6 +203,10 @@ static NSString * kCSNavigationBarBoundsKeyPath = @"bounds";
             {
                 [self updateSymbolView];
             }
+            // Share views
+            {
+                [self updateShareViews];
+            }
         }
         
         //Interaction
@@ -259,37 +265,130 @@ static NSString * kCSNavigationBarBoundsKeyPath = @"bounds";
                                 kCSNotificationViewSymbolViewSidelength : 0.0f;
     CGFloat symbolViewHeight = kCSNotificationViewSymbolViewSidelength;
     
-    NSDictionary* metrics =
+    CGFloat shareViewWidth = kCSNotificationViewSymbolViewSidelength;
+    CGFloat shareViewHeight = kCSNotificationViewSymbolViewSidelength;
+    
+    if ( _facebookShareView && _twitterShareView )
+    {
+        // UPDATED AND NEW CONTRAINTS FOR FB AND TW SHARING
+        
+        NSDictionary* metrics =
+        @{@"symbolViewWidth": [NSNumber numberWithFloat:symbolViewWidth],
+          @"symbolViewHeight":[NSNumber numberWithFloat:symbolViewHeight],
+          @"shareViewWidth": [NSNumber numberWithFloat:shareViewWidth],
+          @"shareViewHeight": [NSNumber numberWithFloat:shareViewHeight]};
+        
+        [self addConstraints:[NSLayoutConstraint
+                              constraintsWithVisualFormat:@"H:|-(4)-[_symbolView(symbolViewWidth)]-(5)-[_textLabel]-(5)-[_fbView][_twitterView]|"
+                              options:0
+                              metrics:metrics
+                              views:@{@"_symbolView": self.symbolView,
+                                      @"_textLabel": self.textLabel,
+                                      @"_twitterView": _twitterShareView,
+                                      @"_fbView" : _facebookShareView}]];
+        
+        [self addConstraints:[NSLayoutConstraint
+                              constraintsWithVisualFormat:@"V:[_symbolView(symbolViewHeight)]"
+                              options:0
+                              metrics:metrics
+                              views:@{@"_symbolView": self.symbolView}]];
+        
+        [self addConstraints:[NSLayoutConstraint
+                              constraintsWithVisualFormat:@"V:[_fbView(shareViewHeight)]"
+                              options:0
+                              metrics:metrics
+                              views:@{@"_fbView": _facebookShareView}]];
+        
+        [self addConstraints:[NSLayoutConstraint
+                              constraintsWithVisualFormat:@"V:[_twitterView(shareViewHeight)]"
+                              options:0
+                              metrics:metrics
+                              views:@{@"_twitterView": _twitterShareView}]];
+        
+        [self addConstraint:[NSLayoutConstraint
+                             constraintWithItem:_symbolView
+                             attribute:NSLayoutAttributeBottom
+                             relatedBy:NSLayoutRelationEqual
+                             toItem:self
+                             attribute:NSLayoutAttributeBottom
+                             multiplier:1.0f constant:-5.0]];
+        
+        [self addConstraint:[NSLayoutConstraint
+                             constraintWithItem:_facebookShareView
+                             attribute:NSLayoutAttributeBottom
+                             relatedBy:NSLayoutRelationEqual
+                             toItem:self
+                             attribute:NSLayoutAttributeBottom
+                             multiplier:1.0f constant:-3]];
+        
+        [self addConstraint:[NSLayoutConstraint
+                             constraintWithItem:_twitterShareView
+                             attribute:NSLayoutAttributeBottom
+                             relatedBy:NSLayoutRelationEqual
+                             toItem:self
+                             attribute:NSLayoutAttributeBottom
+                             multiplier:1.0f constant:-3]];
+        
+        [self addConstraint:[NSLayoutConstraint
+                             constraintWithItem:self.textLabel
+                             attribute:NSLayoutAttributeCenterY
+                             relatedBy:NSLayoutRelationEqual
+                             toItem:self.symbolView
+                             attribute:NSLayoutAttributeCenterY
+                             multiplier:1.0f constant:3]];
+        
+        [self addConstraint:[NSLayoutConstraint
+                             constraintWithItem:_facebookShareView
+                             attribute:NSLayoutAttributeCenterY
+                             relatedBy:NSLayoutRelationEqual
+                             toItem:_textLabel
+                             attribute:NSLayoutAttributeCenterY
+                             multiplier:1.0f constant:0]];
+        
+        [self addConstraint:[NSLayoutConstraint
+                             constraintWithItem:_twitterShareView
+                             attribute:NSLayoutAttributeCenterY
+                             relatedBy:NSLayoutRelationEqual
+                             toItem:_textLabel
+                             attribute:NSLayoutAttributeCenterY
+                             multiplier:1.0f constant:0]];
+    }
+    else
+    {
+        // NON SHARE METRICS ...
+        
+        NSDictionary* metrics =
         @{@"symbolViewWidth": [NSNumber numberWithFloat:symbolViewWidth],
           @"symbolViewHeight":[NSNumber numberWithFloat:symbolViewHeight]};
-    
-    [self addConstraints:[NSLayoutConstraint
-        constraintsWithVisualFormat:@"H:|-(4)-[_symbolView(symbolViewWidth)]-(5)-[_textLabel]-(10)-|"
-                            options:0
-                            metrics:metrics
-                              views:NSDictionaryOfVariableBindings(_textLabel, _symbolView)]];
-    
-    [self addConstraints:[NSLayoutConstraint
-        constraintsWithVisualFormat:@"V:[_symbolView(symbolViewHeight)]"
-                            options:0
-                            metrics:metrics
-                                views:NSDictionaryOfVariableBindings(_symbolView)]];
-    
-    [self addConstraint:[NSLayoutConstraint
-                constraintWithItem:_symbolView
-                         attribute:NSLayoutAttributeBottom
-                         relatedBy:NSLayoutRelationEqual
-                            toItem:self
-                         attribute:NSLayoutAttributeBottom
-                         multiplier:1.0f constant:-3]];
-    
-    [self addConstraint:[NSLayoutConstraint
-        constraintWithItem:_textLabel
-                 attribute:NSLayoutAttributeCenterY
-                 relatedBy:NSLayoutRelationEqual
-                    toItem:_symbolView
-                 attribute:NSLayoutAttributeCenterY
-                multiplier:1.0f constant:0]];
+        
+        [self addConstraints:[NSLayoutConstraint
+                              constraintsWithVisualFormat:@"H:|-(4)-[_symbolView(symbolViewWidth)]-(5)-[_textLabel]-(10)-|"
+                              options:0
+                              metrics:metrics
+                              views:NSDictionaryOfVariableBindings(_textLabel,_symbolView)]];
+        
+        [self addConstraints:[NSLayoutConstraint
+                              constraintsWithVisualFormat:@"V:[_symbolView(symbolViewHeight)]"
+                              options:0
+                              metrics:metrics
+                              views:NSDictionaryOfVariableBindings(_symbolView)]];
+        
+        [self addConstraint:[NSLayoutConstraint
+                             constraintWithItem:_symbolView
+                             attribute:NSLayoutAttributeBottom
+                             relatedBy:NSLayoutRelationEqual
+                             toItem:self
+                             attribute:NSLayoutAttributeBottom
+                             multiplier:1.0f constant:-3]];
+        
+        [self addConstraint:[NSLayoutConstraint
+                             constraintWithItem:_textLabel
+                             attribute:NSLayoutAttributeCenterY
+                             relatedBy:NSLayoutRelationEqual
+                             toItem:_symbolView
+                             attribute:NSLayoutAttributeCenterY
+                             multiplier:1.0f constant:0]];
+    }
     
     [super updateConstraints];
 }
@@ -360,6 +459,18 @@ static NSString * kCSNavigationBarBoundsKeyPath = @"bounds";
 {
     if (self.tapHandler && tapGestureRecognizer.state == UIGestureRecognizerStateEnded) {
         self.tapHandler();
+    }
+}
+
+-(void) p_tapOnFacebookHandler:(UIGestureRecognizer*)recognizer {
+    if (_shareTapHandler && recognizer.state == UIGestureRecognizerStateEnded) {
+        _shareTapHandler(CSNotificationViewShareTypeFacebook);
+    }
+}
+
+-(void) p_tapOnTwitterHandler:(UIGestureRecognizer*)recognizer {
+    if (_shareTapHandler && recognizer.state == UIGestureRecognizerStateEnded) {
+        _shareTapHandler(CSNotificationViewShareTypeTwitter);
     }
 }
 
@@ -521,6 +632,43 @@ static NSString * kCSNavigationBarBoundsKeyPath = @"bounds";
 
 }
 
+#pragma mark - share view
+
+-(void) updateShareViews {
+    [_facebookShareView removeFromSuperview];
+    [_twitterShareView removeFromSuperview];
+    
+    UIImageView* imageView = [[UIImageView alloc] init];
+    imageView.opaque = NO;
+    imageView.backgroundColor = [UIColor clearColor];
+    imageView.translatesAutoresizingMaskIntoConstraints = NO;
+    imageView.contentMode = UIViewContentModeCenter;
+    imageView.image = [UIImage imageNamed:@"CSNotificationView_shareFBIcon"];
+    _facebookShareView = imageView;
+    _facebookShareView.translatesAutoresizingMaskIntoConstraints = NO;
+    _facebookShareView.userInteractionEnabled = YES;
+    [self addSubview:_facebookShareView];
+    
+    UIImageView* imageView2 = [[UIImageView alloc] init];
+    imageView2.opaque = NO;
+    imageView2.backgroundColor = [UIColor clearColor];
+    imageView2.translatesAutoresizingMaskIntoConstraints = NO;
+    imageView2.contentMode = UIViewContentModeCenter;
+    imageView2.image = [UIImage imageNamed:@"CSNotificationView_shareTwIcon"];
+    _twitterShareView = imageView2;
+    _twitterShareView.translatesAutoresizingMaskIntoConstraints = NO;
+    _twitterShareView.userInteractionEnabled = YES;
+    [self addSubview:_twitterShareView];
+    
+    UITapGestureRecognizer *fbTapRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(p_tapOnFacebookHandler:)];
+    UITapGestureRecognizer *twTapRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(p_tapOnTwitterHandler:)];
+    [_facebookShareView addGestureRecognizer:fbTapRecognizer];
+    [_twitterShareView addGestureRecognizer:twTapRecognizer];
+    
+    [self setNeedsUpdateConstraints];
+}
+
+
 #pragma mark -- image
 
 - (void)setImage:(UIImage *)image
@@ -596,6 +744,9 @@ static NSString * kCSNavigationBarBoundsKeyPath = @"bounds";
         case CSNotificationViewStyleSuccess:
             matchedImage = [UIImage imageNamed:@"CSNotificationView_checkmarkIcon"];
             break;
+        case CSNotificationViewStyleShare:
+            matchedImage = [UIImage imageNamed:@"CSNotificationView_shareIcon"];
+            break;
         case CSNotificationViewStyleError:
             matchedImage = [UIImage imageNamed:@"CSNotificationView_exclamationMarkIcon"];
             break;
@@ -610,6 +761,7 @@ static NSString * kCSNavigationBarBoundsKeyPath = @"bounds";
     UIColor* blurTintColor;
     switch (style) {
         case CSNotificationViewStyleSuccess:
+        case CSNotificationViewStyleShare:
             blurTintColor = [UIColor colorWithRed:0.21 green:0.72 blue:0.00 alpha:1.0];
             break;
         case CSNotificationViewStyleError:
