@@ -7,6 +7,7 @@
 //
 
 #import "CSNotificationView.h"
+#import "CSNotificationView_Private.h"
 
 static NSInteger const kCSNotificationViewEmptySymbolViewTag = 666;
 
@@ -188,14 +189,9 @@ static NSString * kCSNavigationBarBoundsKeyPath = @"bounds";
                 _textLabel.minimumScaleFactor = 0.6;
                 _textLabel.lineBreakMode = NSLineBreakByTruncatingTail;
                 
-                if (floor(NSFoundationVersionNumber) > NSFoundationVersionNumber_iOS_6_1) {
-                    UIFontDescriptor* textLabelFontDescriptor = [UIFontDescriptor preferredFontDescriptorWithTextStyle:UIFontTextStyleBody];
-                    _textLabel.font = [UIFont fontWithDescriptor:textLabelFontDescriptor size:17.0f];
-                    _textLabel.adjustsFontSizeToFitWidth = YES; //This only works in iOS 7 with multiline labels. UILabel doc: "In iOS 6 and earlier, this property is effective only when the numberOfLines property is set to 1."
-                } else {
-                    _textLabel.font = [UIFont systemFontOfSize:17.0f];
-                    _textLabel.preferredMaxLayoutWidth = 1; //Settings this to a minimum enforces line breaks.
-                }
+                UIFontDescriptor* textLabelFontDescriptor = [UIFontDescriptor preferredFontDescriptorWithTextStyle:UIFontTextStyleBody];
+                _textLabel.font = [UIFont fontWithDescriptor:textLabelFontDescriptor size:17.0f];
+                _textLabel.adjustsFontSizeToFitWidth = YES;
                 
                 [self addSubview:_textLabel];
             }
@@ -260,6 +256,13 @@ static NSString * kCSNavigationBarBoundsKeyPath = @"bounds";
 - (void)updateConstraints
 {
     [self removeConstraints:self.constraints];
+    
+    NSDictionary* bindings = @{@"blurView":self.blurView};
+    [self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|[blurView]|"
+                                                                 options:0 metrics:nil views:bindings]];
+    [self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-(-1)-[blurView]-(-1)-|"
+                                                                 options:0 metrics:nil views:bindings]];
+
     
     CGFloat symbolViewWidth = self.symbolView.tag != kCSNotificationViewEmptySymbolViewTag ?
                                 kCSNotificationViewSymbolViewSidelength : 0.0f;
@@ -393,63 +396,12 @@ static NSString * kCSNavigationBarBoundsKeyPath = @"bounds";
     [super updateConstraints];
 }
 
-- (void)layoutSubviews
-{
-    [super layoutSubviews]; //Has to be called again after layout changes.
-    
-    if (floor(NSFoundationVersionNumber) <= NSFoundationVersionNumber_iOS_6_1) {
-        //Manually adjustsFontSizeToFitWidth in iOS 6
-
-        CGFloat defaultPointSize, minimumPointSize;
-        defaultPointSize = self.textLabel.font.pointSize;
-        minimumPointSize = ceilf(defaultPointSize * self.textLabel.minimumScaleFactor);
-
-        UIFont *font = self.textLabel.font;
-        CGSize constrainedSize = CGSizeMake(self.textLabel.frame.size.width, CGFLOAT_MAX);
-
-        for (NSInteger pointSize = defaultPointSize; pointSize >= minimumPointSize; pointSize--) {
-            
-            font = [font fontWithSize:pointSize];
-            
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-            
-            CGSize fitSize = [self.textLabel.text sizeWithFont:font
-                                             constrainedToSize:constrainedSize
-                                                 lineBreakMode:NSLineBreakByTruncatingTail];
-            
-#pragma clang diagnostic pop
-            
-            if (fitSize.height <= CGRectGetHeight(self.textLabel.frame)) {
-                break;
-            }
-        }
-        
-        self.textLabel.font = font;
-        
-        [super layoutSubviews];
-    }
-    
-}
-
-- (void)setFrame:(CGRect)frame
-{
-    [super setFrame:frame];
-    //Update blur layer frame by updating the bounds frame
-    self.toolbar.frame = self.bounds;
-}
-
 #pragma mark - tint color
 
 - (void)setTintColor:(UIColor *)tintColor
 {
     _tintColor = tintColor;
-    //Use 0.6 alpha value for translucency blur in UIToolbar
-    if ([self.toolbar respondsToSelector:@selector(setBarTintColor:)]) {
-        [self.toolbar setBarTintColor:[tintColor colorWithAlphaComponent:0.6]];
-    } else {
-        [self.toolbar setTintColor:[tintColor colorWithAlphaComponent:0.6]];
-    }
+    [self.blurView setBlurTintColor:tintColor];
     self.contentColor = [self legibleTextColorForBlurTintColor:tintColor];
 }
 
@@ -500,6 +452,7 @@ static NSString * kCSNavigationBarBoundsKeyPath = @"bounds";
         [UIView animateWithDuration:animationDuration animations:^{
             [weakself setFrame:endFrame];
         } completion:^(BOOL finished) {
+            
             if (!visible) {
                 [weakself removeFromSuperview];
             }
@@ -740,15 +693,17 @@ static NSString * kCSNavigationBarBoundsKeyPath = @"bounds";
 + (UIImage*)imageForStyle:(CSNotificationViewStyle)style
 {
     UIImage* matchedImage = nil;
+    //Load images from bundle generated by CocoaPods
+    NSBundle *assetsBundle = [NSBundle bundleWithURL:[[NSBundle mainBundle] URLForResource:@"CSNotificationView" withExtension:@"bundle"]];
     switch (style) {
         case CSNotificationViewStyleSuccess:
-            matchedImage = [UIImage imageNamed:@"CSNotificationView_checkmarkIcon"];
+            matchedImage = [UIImage imageWithContentsOfFile:[assetsBundle pathForResource:@"checkmark" ofType:@"png"]];
             break;
         case CSNotificationViewStyleShare:
             matchedImage = [UIImage imageNamed:@"CSNotificationView_shareIcon"];
             break;
         case CSNotificationViewStyleError:
-            matchedImage = [UIImage imageNamed:@"CSNotificationView_exclamationMarkIcon"];
+            matchedImage = [UIImage imageWithContentsOfFile:[assetsBundle pathForResource:@"exclamationMark" ofType:@"png"]];
             break;
         default:
             break;

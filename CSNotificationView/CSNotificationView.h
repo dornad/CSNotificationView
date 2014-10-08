@@ -57,6 +57,10 @@ typedef void(^CSVoidBlock)();
                                                           image:(UIImage*)image
                                                         message:(NSString*)message;
 
+#pragma mark + icons
+
++ (UIImage*)imageForStyle:(CSNotificationViewStyle)style;
+
 #pragma mark - initialization
 
 - (instancetype)initWithParentViewController:(UIViewController*)viewController;
