@@ -9,35 +9,8 @@
 #import "CSNotificationView.h"
 #import "CSNotificationView_Private.h"
 
-static NSInteger const kCSNotificationViewEmptySymbolViewTag = 666;
-
-static NSString* const kCSNotificationViewUINavigationControllerWillShowViewControllerNotification = @"UINavigationControllerWillShowViewControllerNotification";
-
-static void * kCSNavigationBarObservationContext = &kCSNavigationBarObservationContext;
-static NSString * kCSNavigationBarBoundsKeyPath = @"bounds";
-
-@interface CSNotificationView ()
-
-#pragma mark - blur effect
-@property (nonatomic, strong) UIToolbar *toolbar;
-@property (nonatomic, strong) CALayer *blurLayer;
-
-#pragma mark - presentation
-@property (nonatomic, weak) UIViewController* parentViewController;
-@property (nonatomic, weak) UINavigationController* parentNavigationController;
-@property (nonatomic, getter = isVisible) BOOL visible;
-
-#pragma mark - content views
-@property (nonatomic, strong, readonly) UIView* symbolView; // is updated by -(void)updateSymbolView
-@property (nonatomic, strong) UILabel* textLabel;
-@property (nonatomic, strong) UIColor* contentColor;
-@property (nonatomic, strong) UIView* facebookShareView; // is updated by -(void)updateShareViews
-@property (nonatomic, strong) UIView* twitterShareView; // is updated by -(void)updateShareViews
-
-#pragma mark - interaction
-@property (nonatomic, strong) UITapGestureRecognizer* tapRecognizer;
-
-@end
+#import "CSLayerStealingBlurView.h"
+#import "CSNativeBlurView.h"
 
 @implementation CSNotificationView
 
@@ -134,20 +107,18 @@ static NSString * kCSNavigationBarBoundsKeyPath = @"bounds";
         
         //Blur | thanks to https://github.com/JagCesar/iOS-blur for providing this under the WTFPL-license!
         {
-            [self setToolbar:[[UIToolbar alloc] initWithFrame:[self bounds]]];
-            [self setBlurLayer:[[self toolbar] layer]];
+            if (floor(NSFoundationVersionNumber) > NSFoundationVersionNumber_iOS_7_1) {
+                //Use native effects
+                self.blurView = [[CSNativeBlurView alloc] initWithFrame:CGRectZero];
+            } else {
+                //Use layer stealing
+                self.blurView = [[CSLayerStealingBlurView alloc] initWithFrame:CGRectZero];
+            }
             
-            UIView *blurView = [UIView new];
-            [blurView setUserInteractionEnabled:NO];
-            [blurView.layer addSublayer:[self blurLayer]];
-            [blurView setTranslatesAutoresizingMaskIntoConstraints:NO];
-            blurView.clipsToBounds = NO;
-            [self insertSubview:blurView atIndex:0];
-            
-            [self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|[blurView]|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(blurView)]];
-            [self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-(-1)-[blurView]-(-1)-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(blurView)]];
-            
-            [self setBackgroundColor:[UIColor clearColor]];
+            self.blurView.userInteractionEnabled = NO;
+            self.blurView.translatesAutoresizingMaskIntoConstraints = NO;
+            self.blurView.clipsToBounds = NO;
+            [self insertSubview:self.blurView atIndex:0];
         }
         
         //Parent view
@@ -268,12 +239,12 @@ static NSString * kCSNavigationBarBoundsKeyPath = @"bounds";
                                 kCSNotificationViewSymbolViewSidelength : 0.0f;
     CGFloat symbolViewHeight = kCSNotificationViewSymbolViewSidelength;
     
-    CGFloat shareViewWidth = kCSNotificationViewSymbolViewSidelength;
-    CGFloat shareViewHeight = kCSNotificationViewSymbolViewSidelength;
-    
     if ( _facebookShareView && _twitterShareView )
     {
         // UPDATED AND NEW CONTRAINTS FOR FB AND TW SHARING
+        
+        CGFloat shareViewWidth = kCSNotificationViewSymbolViewSidelength;
+        CGFloat shareViewHeight = kCSNotificationViewSymbolViewSidelength;
         
         NSDictionary* metrics =
         @{@"symbolViewWidth": [NSNumber numberWithFloat:symbolViewWidth],
@@ -332,13 +303,13 @@ static NSString * kCSNavigationBarBoundsKeyPath = @"bounds";
                              attribute:NSLayoutAttributeBottom
                              multiplier:1.0f constant:-3]];
         
-        [self addConstraint:[NSLayoutConstraint
-                             constraintWithItem:self.textLabel
-                             attribute:NSLayoutAttributeCenterY
-                             relatedBy:NSLayoutRelationEqual
-                             toItem:self.symbolView
-                             attribute:NSLayoutAttributeCenterY
-                             multiplier:1.0f constant:3]];
+//        [self addConstraint:[NSLayoutConstraint
+//                             constraintWithItem:self.textLabel
+//                             attribute:NSLayoutAttributeCenterY
+//                             relatedBy:NSLayoutRelationEqual
+//                             toItem:self.symbolView
+//                             attribute:NSLayoutAttributeCenterY
+//                             multiplier:1.0f constant:3]];
         
         [self addConstraint:[NSLayoutConstraint
                              constraintWithItem:_facebookShareView
@@ -591,12 +562,15 @@ static NSString * kCSNavigationBarBoundsKeyPath = @"bounds";
     [_facebookShareView removeFromSuperview];
     [_twitterShareView removeFromSuperview];
     
+    //Load images from bundle generated by CocoaPods
+    NSBundle *assetsBundle = [NSBundle bundleWithURL:[[NSBundle mainBundle] URLForResource:@"CSNotificationView" withExtension:@"bundle"]];
+    
     UIImageView* imageView = [[UIImageView alloc] init];
     imageView.opaque = NO;
     imageView.backgroundColor = [UIColor clearColor];
     imageView.translatesAutoresizingMaskIntoConstraints = NO;
     imageView.contentMode = UIViewContentModeCenter;
-    imageView.image = [UIImage imageNamed:@"CSNotificationView_shareFBIcon"];
+    imageView.image = [UIImage imageWithContentsOfFile:[assetsBundle pathForResource:@"facebook" ofType:@"png"]];
     _facebookShareView = imageView;
     _facebookShareView.translatesAutoresizingMaskIntoConstraints = NO;
     _facebookShareView.userInteractionEnabled = YES;
@@ -607,7 +581,7 @@ static NSString * kCSNavigationBarBoundsKeyPath = @"bounds";
     imageView2.backgroundColor = [UIColor clearColor];
     imageView2.translatesAutoresizingMaskIntoConstraints = NO;
     imageView2.contentMode = UIViewContentModeCenter;
-    imageView2.image = [UIImage imageNamed:@"CSNotificationView_shareTwIcon"];
+    imageView2.image = [UIImage imageWithContentsOfFile:[assetsBundle pathForResource:@"twitter" ofType:@"png"]];
     _twitterShareView = imageView2;
     _twitterShareView.translatesAutoresizingMaskIntoConstraints = NO;
     _twitterShareView.userInteractionEnabled = YES;
@@ -700,7 +674,7 @@ static NSString * kCSNavigationBarBoundsKeyPath = @"bounds";
             matchedImage = [UIImage imageWithContentsOfFile:[assetsBundle pathForResource:@"checkmark" ofType:@"png"]];
             break;
         case CSNotificationViewStyleShare:
-            matchedImage = [UIImage imageNamed:@"CSNotificationView_shareIcon"];
+            matchedImage = [UIImage imageWithContentsOfFile:[assetsBundle pathForResource:@"share" ofType:@"png"]];
             break;
         case CSNotificationViewStyleError:
             matchedImage = [UIImage imageWithContentsOfFile:[assetsBundle pathForResource:@"exclamationMark" ofType:@"png"]];

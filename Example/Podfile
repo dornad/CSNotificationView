@@ -1,6 +1,5 @@
 platform :ios, "7.0"
 
 target "CSNotificationViewDemo" do
-  pod "CSNotificationView"
+  pod "CSNotificationView", :path => '~/Projects/CSNotificationView/'
 end
-

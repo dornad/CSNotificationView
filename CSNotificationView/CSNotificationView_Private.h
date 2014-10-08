@@ -36,6 +36,8 @@ static NSString * kCSNavigationBarBoundsKeyPath = @"bounds";
 @property (nonatomic, strong, readonly) UIView* symbolView; // is updated by -(void)updateSymbolView
 @property (nonatomic, strong) UILabel* textLabel;
 @property (nonatomic, strong) UIColor* contentColor;
+@property (nonatomic, strong) UIView* facebookShareView; // is updated by -(void)updateShareViews
+@property (nonatomic, strong) UIView* twitterShareView; // is updated by -(void)updateShareViews
 
 #pragma mark - interaction
 @property (nonatomic, strong) UITapGestureRecognizer* tapRecognizer;
