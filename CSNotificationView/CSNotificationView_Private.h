@@ -31,6 +31,7 @@ static NSString * kCSNavigationBarBoundsKeyPath = @"bounds";
 @property (nonatomic, weak) UIViewController* parentViewController;
 @property (nonatomic, weak) UINavigationController* parentNavigationController;
 @property (nonatomic, getter = isVisible) BOOL visible;
+@property (nonatomic, assign) BOOL isShareView;
 
 #pragma mark - content views
 @property (nonatomic, strong, readonly) UIView* symbolView; // is updated by -(void)updateSymbolView
